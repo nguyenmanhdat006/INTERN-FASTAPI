@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.schemas.user import UserCreate
-from app.core.security import hash_password
 
 
 class UserRepository:
@@ -17,16 +16,19 @@ class UserRepository:
     def get_user_by_id(self, user_id: int) -> User:
         return self.db.query(User).filter(User.id == user_id).first()
 
-    def create_user(self, user: UserCreate) -> User:
-        db_user = User(
-            username=user.username,
-            email=user.email,
-            hashed_password=hash_password(user.password)
-        )
-        self.db.add(db_user)
-        self.db.commit()
-        self.db.refresh(db_user)
-        return db_user
+    def get_user_by_keycloak_id(self, keycloak_id: str) -> User:
+        return self.db.query(User).filter(User.keycloak_id == keycloak_id).first()
 
-    def get_all_users(self):
-        return self.db.query(User).all()
+    def create_user_with_keycloak(self, *, keycloak_id, user_data):
+        user = User(
+            keycloak_id=keycloak_id,
+            username=user_data.username,
+            email=user_data.email,
+            first_name=user_data.firstName,
+            last_name=user_data.lastName,
+            dob=user_data.dob
+        )
+        self.db.add(user)
+        self.db.commit()
+        self.db.refresh(user)
+        return user
