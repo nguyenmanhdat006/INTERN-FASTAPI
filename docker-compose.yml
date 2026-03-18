@@ -1,36 +1,58 @@
 services:
   db:
-    image: postgres:15-alpine
-    container_name: fastapi_db
+    image: postgres:16-alpine
+    container_name: fastapi-db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: nguyendat_db
-      POSTGRES_USER: nguyendat
-      POSTGRES_PASSWORD: nguyendat
+      POSTGRES_DB: fastapi
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nguyendat"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fastapi"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 20
 
-  app:
-    build: .
-    container_name: fastapi_app
-    ports:
-      - "8000:8000"
-    volumes:
-      - .:/app
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: fastapi-keycloak
+    restart: unless-stopped
+    command: ["start-dev", "--http-port=8080"]
     environment:
-      - DEBUG=True
-      - DATABASE_URL=postgresql://nguyendat:nguyendat@db:5432/nguyendat_db
-      - APP_NAME=FastAPI Store API
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi-api
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+      keycloak:
+        condition: service_started
+    environment:
+      APP_NAME: FastAPI Store API
+      APP_VERSION: 1.0.0
+      DEBUG: "true"
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/fastapi
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: FastApi
+      KEYCLOAK_CLIENT_ID: fastapi
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-change-me}
+    ports:
+      - "8000:8000"
 
 volumes:
-  postgres_data:
+  db_data:
+  keycloak_data:

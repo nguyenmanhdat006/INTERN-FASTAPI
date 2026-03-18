@@ -30,9 +30,9 @@ app.include_router(api_v1_router)
 def read_root():
     return {
         "message": "Welcome to Store Management System",
-        "version": settings.app_version,
+        "version": settings.APP_VERSION,
         "docs": "/docs",
-        "api_v1": settings.api_v1_prefix
+        "api_v1": api_v1_router.prefix,
     }
 
 
@@ -42,5 +42,5 @@ if __name__ == "__main__":
         "app.main:app",
         host="0.0.0.0",
         port=8000,
-        reload=settings.debug,
+        reload=settings.DEBUG,
     )
