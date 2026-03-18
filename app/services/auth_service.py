@@ -1,6 +1,6 @@
 from app.infra.keycloak_client import KeycloakClient
 from fastapi import HTTPException
-
+from sqlalchemy.orm import Session
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import UserCreate, UserResponse
 
